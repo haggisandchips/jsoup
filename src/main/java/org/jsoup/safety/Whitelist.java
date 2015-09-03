@@ -274,6 +274,51 @@ public class Whitelist {
     }
 
     /**
+    Add a validator for an attribute. This allows the value of an attribute to be verified using one of a number of
+    built-in validators, or developers can implement their own by implementing {@link ValueValidator} or extending
+    {@link BaseValueValidator}. Generally an attribute is safe if it passes at least one validator but validators can be
+    marked as required in which case attributes must match all required validators.
+    <p>
+    E.g.: <code>addAttributeValidator("p", "class", new PatternValueValidator("^x-.*$"))</code> will ensure that
+    <code>p</code> tags only specify <code>class</code> attribute values that begin with "x-"
+    </p>
+
+    @param tag   The tag the attribute validator is for. The tag will be added to the allowed tag list if necessary.
+    @param key   The attribute key. The attribute will be added to the allowed list if necessary.
+    @param validator The attribute validator
+    @return this (for chaining)
+    */
+    public Whitelist addAttributeValidator(String tag, String key, ValueValidator validator) {
+        Validate.notEmpty(tag);
+        Validate.notEmpty(key);
+        Validate.notNull(validator);
+
+        TagName tagName = TagName.valueOf(tag);
+        if (!tagNames.contains(tagName))
+            tagNames.add(tagName);
+
+        final Map<AttributeKey, Set<ValueValidator>> currentSet;
+        if (attributes.containsKey(tagName)) {
+            currentSet = attributes.get(tagName);
+        } else {
+            currentSet = new HashMap<Whitelist.AttributeKey, Set<ValueValidator>>();
+            attributes.put(tagName, currentSet);
+        }
+
+        AttributeKey attribute = AttributeKey.valueOf(key);
+        final Set<ValueValidator> validators;
+        if (currentSet.containsKey(attribute)) {
+            validators = currentSet.get(attribute);
+        } else {
+            validators = new HashSet<ValueValidator>();
+            currentSet.put(attribute, validators);
+        }
+        validators.add(validator);
+
+        return this;
+    }
+
+    /**
      Remove a list of allowed attributes from a tag. (If an attribute is not allowed on an element, it will be removed.)
      <p>
      E.g.: <code>removeAttributes("a", "href", "class")</code> disallows <code>href</code> and <code>class</code>
